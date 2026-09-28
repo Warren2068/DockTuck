@@ -1,139 +1,52 @@
-<p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="assets/hero-banner-dark.svg" />
-    <img src="assets/hero-banner.svg" alt="Click2Minimize" width="100%" />
-  </picture>
-</p>
+# DockTuck
 
 <p align="center">
-  <a href="https://github.com/hatimhtm/Click2Minimize/releases/latest"><img src="https://img.shields.io/github/v/release/hatimhtm/Click2Minimize?style=for-the-badge&label=DOWNLOAD&labelColor=1A1A1A&color=CCFF00" alt="Latest release" /></a>
-  <img src="https://img.shields.io/badge/macOS-13.0+-1A1A1A?style=for-the-badge&logo=apple&logoColor=CCFF00" alt="macOS 13+" />
-  <img src="https://img.shields.io/badge/Swift-5-1A1A1A?style=for-the-badge&logo=swift&logoColor=CCFF00" alt="Swift 5" />
-  <img src="https://img.shields.io/badge/Xcode-16-1A1A1A?style=for-the-badge&logo=xcode&logoColor=CCFF00" alt="Xcode 16" />
-  <a href="LICENSE"><img src="https://img.shields.io/badge/LICENSE-POLYFORM_NC-1A1A1A?style=for-the-badge&labelColor=1A1A1A&color=CCFF00" alt="PolyForm Noncommercial" /></a>
+  <img src="DockTuck/Assets.xcassets/AppIcon.appiconset/icon_256x256.png" alt="DockTuck" width="128" />
 </p>
 
-<p align="center">
-  <em><strong>Click an app's dock icon to minimize its windows.</strong> macOS doesn't ship with this behaviour by default — Click2Minimize is a ~570-LOC Swift menu-bar utility that adds it. Accessory app, no window, no telemetry. Lives in the menu bar, runs an event tap, talks to the dock via Accessibility + AppleScript. Free to use personally — not for commercial reuse (see <a href="LICENSE">LICENSE</a>).</em>
-</p>
+点击已经在前台的 App 的 Dock 图标，把它的窗口最小化。再点一次恢复。
 
----
+DockTuck 是 [Click2Minimize](https://github.com/hatimhtm/Click2Minimize) 的非商业衍生项目，由 Warren2068 在本地用 git 维护。菜单栏图标、应用图标和磁盘镜像缩略图都是 DockTuck 自己的图标。
 
-### `/// WHAT IT DOES`
+## 许可
 
-When you click the dock icon of an already-focused app, macOS does nothing — the click just re-activates an app that's already active. Click2Minimize swaps that no-op for the obvious behaviour: minimize the app's windows. Click again to bring them back. Like the Windows taskbar, but on macOS.
+本项目继续适用 [PolyForm Noncommercial 1.0.0](LICENSE)（<https://polyformproject.org/licenses/noncommercial/1.0.0>）。修改和再分发也必须沿用同一份条款，并带上许可证正文或该 URL，以及下面这行原文：
 
-- Click a **focused** app's dock icon → windows minimize.
-- Click an **unfocused** app's icon → default macOS behaviour (focus, raise).
-- Click **Launchpad / Trash / Downloads** → default behaviour (these have no windows to minimize).
-- App is **fullscreen** → pass-through (no minimize, you didn't mean it).
+Required Notice: Copyright Hatim El Hassak (https://github.com/hatimhtm/Click2Minimize)
 
----
+Copyright © 2025–2026 Hatim El Hassak.
 
-### `/// HOW IT WORKS`
+DockTuck 的改名和后续维护 © 2026 Warren2068.
 
-```
-                                                 ┌─────────────────────┐
-                                                 │ NSWorkspace notifs  │
-                                                 │  (launch · activate │
-                                                 │   · space change)   │
-                                                 └──────────┬──────────┘
-                                                            │ debounced 300ms
-                                                            ▼
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────────────┐
-│ CGEvent tap     │───▶│ hit-test mouse  │───▶│ AppleScript query Dock  │
-│ (left mousedown)│    │ vs dock rects   │    │ → rects + app names     │
-└─────────────────┘    └─────────────────┘    └─────────────────────────┘
-                                │
-                                ▼
-              ┌─────────────────────────────────────────┐
-              │ AXUIElement → set kAXMinimized = true   │
-              │ on every visible window of the app      │
-              └─────────────────────────────────────────┘
-```
+个人使用、学习、爱好项目，以及非商业再分发，都在这份许可之内。商业使用需要另向版权持有人取得许可。
 
-- **Event tap** runs at `cghidEventTap` / `tailAppendEventTap`, captures left mouse-down only.
-- **Dock rects** are cached and refreshed on a trailing-edge 300ms debounce — bursts of `didLaunch / didActivate / activeSpaceDidChange` collapse into a single AppleScript call.
-- **Window minimization** goes through `AXUIElementSetAttributeValue(kAXMinimizedAttribute)` — the proper accessibility API, not key-event simulation.
-- **Fullscreen detection** reads `AXFullScreen` on the frontmost app's windows (rewritten in 1.5 — the old check was inspecting Click2Minimize's own windows).
+## 和上游的差别
 
----
+代码基于上游 2.1，并保留 Dock 扫描修复：枚举过程中某个 Dock 图标消失时，System Events 可能返回 `-1728`。旧逻辑会把整份 `dockItems` 清空，点击最小化随后失效。现在会跳过消失的项；整次扫描失败或结果为空时，最多重试三次，每次间隔一秒。
 
-### `/// HIGHLIGHTS`
+应用名是 DockTuck，bundle id 是 `com.warren2068.DockTuck`。应用内更新检查指向 `Warren2068/DockTuck` 的 GitHub Releases。这个仓库公开之前，检查会安静失败，不会去拉取上游的 Click2Minimize 安装包。
 
-| | |
-|---|---|
-| **No window** | `LSUIElement`-style accessory app; lives only in the menu bar |
-| **No telemetry** | Zero network calls except the GitHub releases check on launch |
-| **No background daemon** | Just one process, registers a `CGEvent` tap via Accessibility |
-| **Modern Swift logging** | `os.Logger` with subsystem + privacy modifiers; no `print()` spam in Release |
-| **Opt-in launch-at-login** | SwiftUI toggle wires `SMAppService.mainApp` register/unregister; was unconditional before 1.5 |
-| **Fallback dock scan** | If `AXUIElement` can't read the dock list, an AppleScript fallback recovers app names from `System Events` |
-| **Universal binary** | `xcodebuild -configuration Release` produces arm64 + x86_64; ad-hoc signed DMG |
-| **Source-available** | PolyForm Noncommercial 1.0.0 — read it, learn from it, run it personally, don't ship it |
+## 行为
 
----
+- 点击**已经在前台**的 App 的 Dock 图标：最小化它的窗口。
+- 点击**不在前台**的 App：保持 macOS 原有行为。
+- Launchpad、废纸篓、下载：不处理。
+- 前台 App 处于全屏：不最小化。
 
-### `/// 2.1 — WHAT CHANGED FROM 2.0`
+实现上，菜单栏应用注册一个只看鼠标左键按下的 `CGEvent` tap，用缓存的 Dock 图标矩形做命中测试，再通过 Accessibility 把该 App 的可见窗口设为最小化。Dock 矩形由 AppleScript 查询，并在启动、激活、退出和空间切换后做 300ms 尾沿合并。
 
-- **Fixed**: `isActiveAppFullscreen()` was inspecting Click2Minimize's own `NSWindow`s — always returned false. Rewritten to read `AXFullScreen` on the frontmost app via Accessibility.
-- **Fixed**: dock-item ignore-list was `"Launchpad||Trash||Downloads".contains(name)` — substring match, would catch "TrashCan" or any app with "Trash" in the name. Replaced with proper `Set` membership.
-- **Fixed**: dock-update debounce was firing every event and only suppressing later ones inside the 0.5s window — it never actually coalesced bursts. Rewritten with `DispatchWorkItem` trailing-edge debounce at 300ms.
-- **Improved**: all `print()` calls migrated to `os.Logger` with privacy modifiers. Release builds no longer write to stdout.
-- **Improved**: launch-at-login is now an opt-in toggle in Settings instead of unconditional. Existing installs that were auto-registered stay registered until toggled off.
-- **Improved**: settings sheet redesigned — launch-at-login row, cleaner spacing, footnote anchored.
-- **Improved**: deprecated `NSWorkspace.launchApplication(_:)` swapped for `openApplication(at:configuration:completionHandler:)`.
-- **Bumped**: marketing version → 2.1 to align the in-app version with the GitHub release tag (was 1.4 in-plist while the latest release was already tagged v2.0).
+## 构建
 
----
-
-### `/// INSTALL`
-
-1. Grab the latest `.dmg` from [Releases](../../releases/latest).
-2. Open it, drag `Click2Minimize.app` into `/Applications`.
-3. Launch it. You'll be prompted for **Accessibility** permission — open System Settings → Privacy & Security → Accessibility, toggle Click2Minimize on.
-4. If you use Catalyst / Electron apps and want the fallback to work cleanly, also grant **Automation** (asked on first need).
-
-The DMG is ad-hoc signed, so the first launch will need a right-click → Open to get past Gatekeeper.
-
----
-
-### `/// BUILD FROM SOURCE`
+需要 Xcode 26 或更新版本（新版图标使用 Icon Composer）。最低目标系统是 macOS 13.0，因为登录时启动功能使用 macOS 13 引入的 `SMAppService`。Release 同时包含 Apple Silicon (`arm64`) 和 Intel (`x86_64`)。Intel Mac 的官方系统范围是 macOS 13、14、15、26；macOS 27 只支持 Apple Silicon。实际能安装的系统版本仍取决于 Mac 机型。
 
 ```bash
-git clone https://github.com/hatimhtm/Click2Minimize.git
-cd Click2Minimize
+xcodebuild -scheme DockTuck -configuration Release -derivedDataPath build
 
-# Release build into ./build
-xcodebuild -scheme Click2Minimize -configuration Release -derivedDataPath build
+# 查看构建产物是否包含两个架构
+lipo -archs build/Build/Products/Release/DockTuck.app/Contents/MacOS/DockTuck
 
-# Or build the full DMG in ./dist
+# 生成 dist/DockTuck.dmg，包内附有 LICENSE
 ./build_dmg.sh
 ```
 
-Requires Xcode 15+. Targets macOS 13.0+.
-
----
-
-### `/// LICENSE`
-
-[PolyForm Noncommercial 1.0.0](LICENSE). In plain English:
-
-- **Allowed**: reading, learning, personal use, hobby use, non-profit / educational / research use, forking to improve, distributing your fork under the same license.
-- **Not allowed**: shipping it inside a paid product, selling support for it, embedding it in commercial software, any commercial use.
-
-If you want a commercial license, [open an issue](../../issues) or [book a call](https://cal.com/hatimelhassak/engineering-discovery).
-
----
-
-<p align="center">
-  <a href="https://hatimelhassak.is-a.dev"><img src="https://img.shields.io/badge/PORTFOLIO-1A1A1A?style=for-the-badge&logo=vercel&logoColor=CCFF00" alt="Portfolio" /></a>
-  <a href="https://cal.com/hatimelhassak/engineering-discovery"><img src="https://img.shields.io/badge/BOOK_A_CALL-CCFF00?style=for-the-badge&logo=googlecalendar&logoColor=1A1A1A" alt="Book a call" /></a>
-  <a href="https://www.linkedin.com/in/hatim-elhassak/"><img src="https://img.shields.io/badge/LINKEDIN-1A1A1A?style=for-the-badge&logo=linkedin&logoColor=CCFF00" alt="LinkedIn" /></a>
-  <a href="mailto:hatimelhassak.official@gmail.com"><img src="https://img.shields.io/badge/EMAIL-1A1A1A?style=for-the-badge&logo=gmail&logoColor=CCFF00" alt="Email" /></a>
-  <a href="https://buymeacoffee.com/hatimelhassak"><img src="https://img.shields.io/badge/BUY_ME_A_COFFEE-FFDD00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=1A1A1A" alt="Buy Me A Coffee" /></a>
-</p>
-
-<p align="center">
-  <code>///&nbsp;&nbsp;OPEN FOR NEW WORK&nbsp;&nbsp;///&nbsp;&nbsp;CONTRACT &amp; FREELANCE&nbsp;&nbsp;///&nbsp;&nbsp;REMOTE WORLDWIDE&nbsp;&nbsp;///</code>
-</p>
+DMG 使用 ad-hoc 签名。第一次打开需要在 Finder 里右键，选择“打开”。启动后到系统设置 → 隐私与安全性 → 辅助功能，打开 DockTuck。需要自动化权限时，在菜单里打开 Automation Preferences。

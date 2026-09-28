@@ -7,17 +7,17 @@ import ServiceManagement
 import Foundation
 import os.log
 
-private let log = Logger(subsystem: "com.idemfactor.Click2Minimize", category: "app")
+private let log = Logger(subsystem: "com.warren2068.DockTuck", category: "app")
 
 /// Dock items we never act on — these have no useful "active windows" semantic.
 private let ignoredDockItems: Set<String> = ["Launchpad", "Trash", "Downloads"]
 
 @main // This indicates that this is the entry point of the application
-struct Click2MinimizeApp: App {
+struct DockTuckApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
 
     var body: some Scene {
-        MenuBarExtra("Click2Minimize", image: "MenuBarIcon") {
+        MenuBarExtra("DockTuck", image: "MenuBarIcon") {
             Button(action: appDelegate.openPopupWindow, label: { Text("Settings") })
             Divider()
             
@@ -34,9 +34,8 @@ struct Click2MinimizeApp: App {
 
     init() {
         // Retrieve the current version and build number from Info.plist
-        if let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String,
-           let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String {
-            appDelegate.currentVersion = "\(version).\(build)" // Combine version and build number
+        if let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String {
+            appDelegate.currentVersion = version
         }
         appDelegate.checkForUpdates()
     }
@@ -109,7 +108,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         setupAppDict()
         setupEventTap()
 
-        log.info("Click2Minimize launched")
+        log.info("DockTuck launched")
         updateDockItems()
     }
 
@@ -265,7 +264,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         return minimizedAny
     }
 
-    /// True if the frontmost (non-Click2Minimize) app has at least one fullscreen window.
+    /// True if the frontmost (non-DockTuck) app has at least one fullscreen window.
     /// We don't want to click-minimize a fullscreen window — that interrupts the user.
     private func isFrontmostAppFullscreen() -> Bool {
         guard let frontApp = NSWorkspace.shared.frontmostApplication else { return false }
@@ -387,7 +386,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         alert.messageText = "Accessibility Permission Required"
         alert.informativeText = 
         """
-        To allow Click2Minimize to control the system dock, please enable accessibility permissions for it in System Preferences.
+        To allow DockTuck to control the system dock, please enable accessibility permissions for it in System Preferences.
         
         Please relaunch app after permission granted.
         """
@@ -416,7 +415,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func checkForUpdates() {
-        let url = URL(string: "https://api.github.com/repos/hatimhtm/Click2Minimize/releases/latest")!
+        let url = URL(string: "https://api.github.com/repos/Warren2068/DockTuck/releases/latest")!
         let task = URLSession.shared.dataTask(with: url) { data, response, error in
             guard let data = data, error == nil else {
                 log.error("checkForUpdates: \(error?.localizedDescription ?? "unknown error", privacy: .public)")
@@ -464,7 +463,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func fetchLatestDMG(releaseInfo: Release) {
-        let url = URL(string: "https://api.github.com/repos/hatimhtm/Click2Minimize/releases/latest")!
+        let url = URL(string: "https://api.github.com/repos/Warren2068/DockTuck/releases/latest")!
         let task = URLSession.shared.dataTask(with: url) { data, response, error in
             guard let data = data, error == nil else {
                 log.error("fetchLatestDMG: \(error?.localizedDescription ?? "unknown error", privacy: .public)")
@@ -502,16 +501,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
             mountTask.terminationHandler = { process in
                 if process.terminationStatus == 0 {
-                    let mountedVolumePath = "/Volumes/Click2Minimize"
-                    let appDestinationURL = URL(fileURLWithPath: "/Applications/Click2Minimize.app")
+                    let mountedVolumePath = "/Volumes/DockTuck"
+                    let appDestinationURL = URL(fileURLWithPath: "/Applications/DockTuck.app")
 
                     do {
-                        let appSourceURL = URL(fileURLWithPath: "\(mountedVolumePath)/Click2Minimize.app")
+                        let appSourceURL = URL(fileURLWithPath: "\(mountedVolumePath)/DockTuck.app")
                         if FileManager.default.fileExists(atPath: appDestinationURL.path) {
                             try FileManager.default.removeItem(at: appDestinationURL)
                         }
                         try FileManager.default.copyItem(at: appSourceURL, to: appDestinationURL)
-                        log.info("installed Click2Minimize to /Applications")
+                        log.info("installed DockTuck to /Applications")
 
                         DispatchQueue.main.async { self.promptUserToRelaunch() }
                     } catch {
@@ -536,7 +535,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func openBrowserForManualUpgrade() {
-        if let url = URL(string: "https://github.com/hatimhtm/Click2Minimize/releases") {
+        if let url = URL(string: "https://github.com/Warren2068/DockTuck/releases") {
             NSWorkspace.shared.open(url)
         }
     }
@@ -550,7 +549,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         let response = alert.runModal()
         if response == .alertFirstButtonReturn {
-            let appURL = URL(fileURLWithPath: "/Applications/Click2Minimize.app")
+            let appURL = URL(fileURLWithPath: "/Applications/DockTuck.app")
             NSWorkspace.shared.openApplication(at: appURL, configuration: NSWorkspace.OpenConfiguration(), completionHandler: nil)
         }
 

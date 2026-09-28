@@ -1,9 +1,9 @@
 #!/bin/bash
 
 # Set variables
-APP_NAME="Click2Minimize"
+APP_NAME="DockTuck"
 APP_PATH="build/Build/Products/Release/$APP_NAME.app"
-DMG_NAME="Click2Minimize.dmg"
+DMG_NAME="DockTuck.dmg"
 DMG_PATH="dist/$DMG_NAME"
 TEMP_DIR="temp_dmg_contents"                                     # Temporary directory for DMG contents
 CODE_SIGN_IDENTITY="${CODE_SIGN_IDENTITY:--}" # Use environment variable or fallback to ad-hoc
@@ -34,8 +34,15 @@ mkdir -p dist
 # Create a temporary folder for DMG contents
 mkdir -p "$TEMP_DIR"
 
-# Copy the app to the temporary folder
+# Copy the app and the license that must travel with every copy.
 cp -R "$APP_PATH" "$TEMP_DIR/"
+cp LICENSE "$TEMP_DIR/LICENSE"
+
+# Finder uses this as the disk image thumbnail.
+cp assets/AppIcon.icns "$TEMP_DIR/.VolumeIcon.icns"
+if command -v SetFile >/dev/null; then
+  SetFile -a C "$TEMP_DIR" || true
+fi
 
 # Create an alias to the Applications folder
 ln -s /Applications "$TEMP_DIR/Applications"

@@ -15,7 +15,7 @@ if [[ "\$*" == *"clean"* ]]; then
     exit 0
 fi
 # Simulate successful build by creating the expected app directory
-mkdir -p build/Build/Products/Release/Click2Minimize.app
+mkdir -p build/Build/Products/Release/DockTuck.app
 exit 0
 MOCK
     chmod +x "$MOCK_DIR/xcodebuild"
@@ -32,7 +32,7 @@ MOCK
 #!/bin/bash
 # Simulate successful DMG creation
 mkdir -p dist
-touch dist/Click2Minimize.dmg
+touch dist/DockTuck.dmg
 exit 0
 MOCK
     chmod +x "$MOCK_DIR/hdiutil"

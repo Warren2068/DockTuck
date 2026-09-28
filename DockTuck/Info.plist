@@ -7,7 +7,7 @@
 	<key>NSAppleEventsUsageDescription</key>
 	<string>This app requires access to control System Events to retrieve dock information.</string>
 	<key>CFBundleName</key>
-	<string>Click2Minimize</string>
+	<string>DockTuck</string>
 	<key>LSApplicationCategory</key>
 	<string>public.app-category.utilities</string>
 </dict>

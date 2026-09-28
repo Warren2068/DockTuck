@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <!-- Scale the original 824pt squircle (inset at 98) to the full 1024 canvas. macOS masks the icon itself, so extra padding makes it look small. -->
+  <g transform="translate(-121.198 -121.198) scale(1.236715)">
+  <defs>
+    <linearGradient id="bg" gradientUnits="userSpaceOnUse" x1="0" y1="100" x2="0" y2="924">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#D6D6D6"/>
+    </linearGradient>
+    <linearGradient id="ink" gradientUnits="userSpaceOnUse" x1="0" y1="256" x2="0" y2="630">
+      <stop offset="0" stop-color="#5C5C5C"/>
+      <stop offset="1" stop-color="#161616"/>
+    </linearGradient>
+    <linearGradient id="bar" gradientUnits="userSpaceOnUse" x1="0" y1="656" x2="0" y2="768">
+      <stop offset="0" stop-color="#3E3E3E"/>
+      <stop offset="1" stop-color="#0C0C0C"/>
+    </linearGradient>
+  </defs>
+  <!-- squircle + soft shadow -->
+  <rect x="100" y="122" width="824" height="824" rx="185" fill="#000000" opacity="0.05"/>
+  <rect x="100" y="110" width="824" height="824" rx="185" fill="#000000" opacity="0.06"/>
+  <rect x="100" y="100" width="824" height="824" rx="185" fill="url(#bg)" stroke="#CACACA" stroke-width="4"/>
+  <!-- window -->
+  <path d="M318,560 V374 A92,92 0 0 1 410,282 H614 A92,92 0 0 1 706,374 V560" fill="none" stroke="url(#ink)" stroke-width="52" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="292" y="520" width="52" height="118" rx="26" fill="url(#ink)"/>
+  <rect x="680" y="520" width="52" height="118" rx="26" fill="url(#ink)"/>
+  <!-- chevron -->
+  <path d="M432,444 L512,520 L592,444" fill="none" stroke="url(#ink)" stroke-width="52" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- dock bar -->
+  <g transform="translate(0,14)" opacity="0.12"><rect x="196" y="656" width="632" height="112" rx="56" fill="#000000"/></g>
+  <rect x="170" y="638" width="684" height="156" rx="78" fill="url(#bg)"/>
+  <rect x="196" y="656" width="632" height="112" rx="56" fill="url(#bar)"/>
+  </g>
+</svg>

@@ -19,13 +19,13 @@ struct ContentView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("Click2Minimize")
+            Text("DockTuck")
                 .font(.headline)
                 .padding(.top, 4)
 
             Divider()
 
-            Toggle("Enable Click2Minimize", isOn: $isClickToMinimizeEnabled)
+            Toggle("Enable DockTuck", isOn: $isClickToMinimizeEnabled)
                 .onChange(of: isClickToMinimizeEnabled) { newValue in
                     UserDefaults.standard.set(newValue, forKey: "ClickToMinimizeEnabled")
                     NotificationCenter.default.post(
