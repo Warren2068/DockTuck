@@ -56,6 +56,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var appDict: [String: String] = [:]
     var currentVersion: String = ""
     private var dockUpdateTask: DispatchWorkItem?
+    private var permissionTimer: Timer?
      
     @objc func quitApp() {
         NSApplication.shared.terminate(self)
@@ -84,18 +85,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
     
     func applicationDidFinishLaunching(_ aNotification: Notification) {
-        // Check for accessibility permissions
-        if !isAccessibilityEnabled() {
-            promptForAccessibilityPermission()
-        }
-
-        // Set the application to be an accessory application
         NSApplication.shared.setActivationPolicy(.accessory)
 
-        // Register for ClickToHideStateChanged notifications
         NotificationCenter.default.addObserver(self, selector: #selector(updateClickToHideState(_:)), name: NSNotification.Name("ClickToHideStateChanged"), object: nil)
 
-        // Start observing Dock changes.
         let center = NSWorkspace.shared.notificationCenter
         center.addObserver(self, selector: #selector(dockChanged), name: NSWorkspace.didLaunchApplicationNotification, object: nil)
         center.addObserver(self, selector: #selector(dockChanged), name: NSWorkspace.didActivateApplicationNotification, object: nil)
@@ -106,9 +99,38 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             registerLoginItem()
         }
         setupAppDict()
-        setupEventTap()
+        log.info("DockTuck launched from \(Bundle.main.bundlePath, privacy: .public)")
 
-        log.info("DockTuck launched")
+        if isRunningFromUnstableLocation() {
+            promptToMoveToApplications()
+            return
+        }
+
+        if isAccessibilityEnabled() {
+            startMonitoring()
+        } else {
+            requestAccessibilityPermission()
+            let timer = Timer(timeInterval: 1.0, repeats: true) { [weak self] timer in
+                guard let self else {
+                    timer.invalidate()
+                    return
+                }
+                if self.isAccessibilityEnabled() {
+                    timer.invalidate()
+                    self.permissionTimer = nil
+                    self.startMonitoring()
+                }
+            }
+            permissionTimer = timer
+            RunLoop.main.add(timer, forMode: .common)
+        }
+    }
+
+    /// Event tap and Dock scan only work after Accessibility is granted.
+    func startMonitoring() {
+        if eventTap == nil {
+            setupEventTap()
+        }
         updateDockItems()
     }
 
@@ -381,36 +403,34 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         return AXIsProcessTrusted()
     }
 
-    func promptForAccessibilityPermission() {
-        let alert = NSAlert()
-        alert.messageText = "Accessibility Permission Required"
-        alert.informativeText = 
-        """
-        To allow DockTuck to control the system dock, please enable accessibility permissions for it in System Preferences.
-        
-        Please relaunch app after permission granted.
-        """
-        alert.alertStyle = .warning
-        alert.addButton(withTitle: "Preferences")
+    /// Asks macOS to show DockTuck in the Accessibility list. The app stays running.
+    func requestAccessibilityPermission() {
+        let key = kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String
+        let options = [key: true] as CFDictionary
+        _ = AXIsProcessTrustedWithOptions(options)
+    }
 
-        let response = alert.runModal()
-        if response == .alertFirstButtonReturn {
-            openAccessibilityPreferences()
-            // Quit the application as it won't work without permission
-            // Delay termination by 1 second
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                NSApplication.shared.terminate(nil)
-            }
-        }
+    func isRunningFromUnstableLocation() -> Bool {
+        let path = Bundle.main.bundlePath
+        return path.contains("/AppTranslocation/") || path.hasPrefix("/Volumes/")
+    }
+
+    func promptToMoveToApplications() {
+        let alert = NSAlert()
+        alert.messageText = "Move DockTuck to Applications"
+        alert.informativeText = "DockTuck is running from a disk image or a temporary copy. macOS will forget its Accessibility permission every time it opens. Drag DockTuck.app into Applications, then open that copy."
+        alert.alertStyle = .warning
+        alert.addButton(withTitle: "OK")
+        alert.runModal()
     }
 
     func openAccessibilityPreferences() {
-        let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")!
+        let url = URL(string: "x-apple.systempreferences:com.apple.settings.PrivacySecurity.extension?Privacy_Accessibility")!
         NSWorkspace.shared.open(url)
     }
 
     func openAutomationPreferences() {
-        let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Automation")!
+        let url = URL(string: "x-apple.systempreferences:com.apple.settings.PrivacySecurity.extension?Privacy_Automation")!
         NSWorkspace.shared.open(url)
     }
 
