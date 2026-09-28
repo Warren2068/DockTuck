@@ -8,6 +8,8 @@
 	<string>This app requires access to control System Events to retrieve dock information.</string>
 	<key>CFBundleName</key>
 	<string>DockTuck</string>
+	<key>LSUIElement</key>
+	<true/>
 	<key>LSApplicationCategory</key>
 	<string>public.app-category.utilities</string>
 </dict>

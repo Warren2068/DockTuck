@@ -83,10 +83,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             w.level = .floating // make it stay on top of others
         }
     }
+
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        openPopupWindow()
+        sender.activate(ignoringOtherApps: true)
+        return false
+    }
     
     func applicationDidFinishLaunching(_ aNotification: Notification) {
-        NSApplication.shared.setActivationPolicy(.accessory)
-
         NotificationCenter.default.addObserver(self, selector: #selector(updateClickToHideState(_:)), name: NSNotification.Name("ClickToHideStateChanged"), object: nil)
 
         let center = NSWorkspace.shared.notificationCenter

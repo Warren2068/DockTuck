@@ -32,6 +32,7 @@ DockTuck 的改名和后续维护 © 2026 Warren2068.
 - 点击**不在前台**的 App：保持 macOS 原有行为。
 - Launchpad、废纸篓、下载：不处理。
 - 前台 App 处于全屏：不最小化。
+- 再次从“应用程序”打开已运行的 DockTuck：显示设置窗口。
 
 实现上，菜单栏应用注册一个只看鼠标左键按下的 `CGEvent` tap，用缓存的 Dock 图标矩形做命中测试，再通过 Accessibility 把该 App 的可见窗口设为最小化。Dock 矩形由 AppleScript 查询，并在启动、激活、退出和空间切换后做 300ms 尾沿合并。
 
