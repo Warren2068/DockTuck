@@ -454,7 +454,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func isNewerVersion(_ newVersion: String, currentVersion: String) -> Bool {
-        let newVersionComponents = newVersion.split(separator: ".").map { Int($0) ?? 0 }
+        let newVersionComponents = newVersion.trimmingCharacters(in: CharacterSet(charactersIn: "vV"))
+            .split(separator: ".").map { Int($0) ?? 0 }
         let currentVersionComponents = currentVersion.split(separator: ".").map { Int($0) ?? 0 }
 
         for (new, current) in zip(newVersionComponents, currentVersionComponents) {
@@ -470,111 +471,20 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func promptUserToUpdate(_ releaseInfo: Release) {
         let alert = NSAlert()
         alert.messageText = "Update Available"
-        alert.informativeText = "A new version \(releaseInfo.tag_name) is available. Would you like to update?"
+        alert.informativeText = "Version \(releaseInfo.tag_name) is available. Open the release page to download it?"
         alert.alertStyle = .informational
-        alert.addButton(withTitle: "Update")
+        alert.addButton(withTitle: "Open Releases")
         alert.addButton(withTitle: "Cancel")
 
         let response = alert.runModal()
         if response == .alertFirstButtonReturn {
-            // Fetch the latest DMG URL from the release info
-            fetchLatestDMG(releaseInfo: releaseInfo)
+            openBrowserForManualUpgrade()
         }
-    }
-
-    private func fetchLatestDMG(releaseInfo: Release) {
-        let url = URL(string: "https://api.github.com/repos/Warren2068/DockTuck/releases/latest")!
-        let task = URLSession.shared.dataTask(with: url) { data, response, error in
-            guard let data = data, error == nil else {
-                log.error("fetchLatestDMG: \(error?.localizedDescription ?? "unknown error", privacy: .public)")
-                return
-            }
-            
-            if let json = try? JSONSerialization.jsonObject(with: data, options: []) as? [String: Any],
-               let assets = json["assets"] as? [[String: Any]] {
-                for asset in assets {
-                    if let downloadURL = asset["browser_download_url"] as? String,
-                       let name = asset["name"] as? String,
-                       name.hasSuffix(".dmg") {
-                        self.downloadDMG(from: downloadURL)
-                        break
-                    }
-                }
-            }
-        }
-        task.resume()
-    }
-
-    private func downloadDMG(from urlString: String) {
-        guard let url = URL(string: urlString) else { return }
-
-        let task = URLSession.shared.downloadTask(with: url) { localURL, response, error in
-            guard let localURL = localURL, error == nil else {
-                log.error("downloadDMG: \(error?.localizedDescription ?? "unknown error", privacy: .public)")
-                self.openBrowserForManualUpgrade()
-                return
-            }
-
-            let mountTask = Process()
-            mountTask.launchPath = "/usr/bin/hdiutil"
-            mountTask.arguments = ["attach", localURL.path]
-
-            mountTask.terminationHandler = { process in
-                if process.terminationStatus == 0 {
-                    let mountedVolumePath = "/Volumes/DockTuck"
-                    let appDestinationURL = URL(fileURLWithPath: "/Applications/DockTuck.app")
-
-                    do {
-                        let appSourceURL = URL(fileURLWithPath: "\(mountedVolumePath)/DockTuck.app")
-                        if FileManager.default.fileExists(atPath: appDestinationURL.path) {
-                            try FileManager.default.removeItem(at: appDestinationURL)
-                        }
-                        try FileManager.default.copyItem(at: appSourceURL, to: appDestinationURL)
-                        log.info("installed DockTuck to /Applications")
-
-                        DispatchQueue.main.async { self.promptUserToRelaunch() }
-                    } catch {
-                        log.error("copy to /Applications failed: \(error.localizedDescription, privacy: .public)")
-                        self.openBrowserForManualUpgrade()
-                    }
-
-                    let unmountTask = Process()
-                    unmountTask.launchPath = "/usr/bin/hdiutil"
-                    unmountTask.arguments = ["detach", mountedVolumePath]
-                    unmountTask.launch()
-                    unmountTask.waitUntilExit()
-                } else {
-                    log.error("failed to mount DMG")
-                    self.openBrowserForManualUpgrade()
-                }
-            }
-
-            mountTask.launch()
-        }
-        task.resume()
     }
 
     private func openBrowserForManualUpgrade() {
         if let url = URL(string: "https://github.com/Warren2068/DockTuck/releases") {
             NSWorkspace.shared.open(url)
-        }
-    }
-
-    private func promptUserToRelaunch() {
-        let alert = NSAlert()
-        alert.messageText = "Update Successful"
-        alert.informativeText = "The application has been successfully updated."
-        alert.alertStyle = .informational
-        alert.addButton(withTitle: "Relaunch")
-
-        let response = alert.runModal()
-        if response == .alertFirstButtonReturn {
-            let appURL = URL(fileURLWithPath: "/Applications/DockTuck.app")
-            NSWorkspace.shared.openApplication(at: appURL, configuration: NSWorkspace.OpenConfiguration(), completionHandler: nil)
-        }
-
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-            NSApplication.shared.terminate(nil)
         }
     }
 

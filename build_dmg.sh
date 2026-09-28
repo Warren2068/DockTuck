@@ -1,62 +1,39 @@
 #!/bin/bash
+set -euo pipefail
 
-# Set variables
-APP_NAME="DockTuck"
-APP_PATH="build/Build/Products/Release/$APP_NAME.app"
-DMG_NAME="DockTuck.dmg"
-DMG_PATH="dist/$DMG_NAME"
-TEMP_DIR="temp_dmg_contents"                                     # Temporary directory for DMG contents
-CODE_SIGN_IDENTITY="${CODE_SIGN_IDENTITY:--}" # Use environment variable or fallback to ad-hoc
+cd "$(dirname "$0")"
 
-# Create the build directory if it doesn't exist
-mkdir -p build
+APP_PATH="build/Build/Products/Release/DockTuck.app"
+DMG_PATH="dist/DockTuck.dmg"
+CODE_SIGN_IDENTITY="${CODE_SIGN_IDENTITY:--}"
+TEMP_DIR="$(mktemp -d "${TMPDIR:-/tmp}/DockTuck-dmg.XXXXXX")"
+trap 'rm -rf "$TEMP_DIR"' EXIT
 
-# Clean previous builds
-xcodebuild clean -scheme "$APP_NAME" -derivedDataPath build
+xcodebuild -project DockTuck.xcodeproj -scheme DockTuck \
+  -configuration Release -destination 'generic/platform=macOS' \
+  -derivedDataPath build ARCHS='arm64 x86_64' ONLY_ACTIVE_ARCH=NO \
+  CODE_SIGNING_ALLOWED=NO -quiet build
 
-# Build a universal binary (arm64 + x86_64) — ONLY_ACTIVE_ARCH=NO forces both
-# slices on Intel hosts that would otherwise produce x86_64-only.
-if ! xcodebuild -scheme "$APP_NAME" -configuration Release -derivedDataPath build \
-    ARCHS="arm64 x86_64" ONLY_ACTIVE_ARCH=NO; then
-  echo "Build failed. Exiting."
+codesign --force --deep --sign "$CODE_SIGN_IDENTITY" "$APP_PATH"
+codesign --verify --deep --strict "$APP_PATH"
+
+ARCHITECTURES="$(lipo -archs "$APP_PATH/Contents/MacOS/DockTuck")"
+if [[ "$ARCHITECTURES" != *arm64* || "$ARCHITECTURES" != *x86_64* ]]; then
+  echo "Expected arm64 and x86_64; found: $ARCHITECTURES" >&2
   exit 1
 fi
 
-# Code sign the app
-if ! codesign --deep --force --verify --verbose --sign "$CODE_SIGN_IDENTITY" "$APP_PATH"; then
-  echo "Code signing failed. Exiting."
-  exit 1
-fi
-
-# Create the dist directory if it doesn't exist
-mkdir -p dist
-
-# Create a temporary folder for DMG contents
-mkdir -p "$TEMP_DIR"
-
-# Copy the app and the license that must travel with every copy.
-cp -R "$APP_PATH" "$TEMP_DIR/"
-cp LICENSE "$TEMP_DIR/LICENSE"
-
-# Finder uses this as the disk image thumbnail.
-cp assets/AppIcon.icns "$TEMP_DIR/.VolumeIcon.icns"
+STAGE_DIR="$TEMP_DIR/contents"
+mkdir -p "$STAGE_DIR" dist
+cp -R "$APP_PATH" "$STAGE_DIR/"
+cp LICENSE "$STAGE_DIR/LICENSE"
+cp assets/AppIcon.icns "$STAGE_DIR/.VolumeIcon.icns"
+ln -s /Applications "$STAGE_DIR/Applications"
 if command -v SetFile >/dev/null; then
-  SetFile -a C "$TEMP_DIR" || true
+  SetFile -a C "$STAGE_DIR" || true
 fi
 
-# Create an alias to the Applications folder
-ln -s /Applications "$TEMP_DIR/Applications"
-
-# Create a DMG file
-hdiutil create "$DMG_PATH" -srcfolder "$TEMP_DIR" -format UDZO -volname "$APP_NAME"
-
-# Clean up temporary files
-rm -rf "$TEMP_DIR"
-
-# Check if the DMG was created successfully
-if [ -f "$DMG_PATH" ]; then
-  echo "DMG created successfully at $DMG_PATH"
-else
-  echo "Failed to create DMG."
-  exit 1
-fi
+hdiutil create "$TEMP_DIR/DockTuck.dmg" -srcfolder "$STAGE_DIR" \
+  -format UDZO -volname DockTuck -quiet
+mv -f "$TEMP_DIR/DockTuck.dmg" "$DMG_PATH"
+echo "DMG created successfully at $DMG_PATH ($ARCHITECTURES)"

@@ -6,7 +6,7 @@
 
 点击已经在前台的 App 的 Dock 图标，把它的窗口最小化。再点一次恢复。
 
-DockTuck 是 [Click2Minimize](https://github.com/hatimhtm/Click2Minimize) 的非商业衍生项目，由 Warren2068 在本地用 git 维护。菜单栏图标、应用图标和磁盘镜像缩略图都是 DockTuck 自己的图标。
+DockTuck 是 [Click2Minimize](https://github.com/hatimhtm/Click2Minimize) 的非商业衍生项目，由 Warren2068 维护。菜单栏图标、应用图标和磁盘镜像缩略图都是 DockTuck 自己的图标。
 
 ## 许可
 
@@ -24,7 +24,7 @@ DockTuck 的改名和后续维护 © 2026 Warren2068.
 
 代码基于上游 2.1，并保留 Dock 扫描修复：枚举过程中某个 Dock 图标消失时，System Events 可能返回 `-1728`。旧逻辑会把整份 `dockItems` 清空，点击最小化随后失效。现在会跳过消失的项；整次扫描失败或结果为空时，最多重试三次，每次间隔一秒。
 
-应用名是 DockTuck，bundle id 是 `com.warren2068.DockTuck`。应用内更新检查指向 `Warren2068/DockTuck` 的 GitHub Releases。这个仓库公开之前，检查会安静失败，不会去拉取上游的 Click2Minimize 安装包。
+应用名是 DockTuck，bundle id 是 `com.warren2068.DockTuck`。应用内更新检查指向 `Warren2068/DockTuck` 的 GitHub Releases；发现新版本时打开发布页供用户下载。
 
 ## 行为
 
